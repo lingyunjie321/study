@@ -1,0 +1,46 @@
+agent:
+  activate_agent: true
+  name: "tool_agent"  # 指定使用 ToolAgent
+
+  # ToolAgent 的专属配置
+  tools:
+    call_limit: 5      # 每轮最多调用5次工具
+    max_workers: 64
+    timeout: 120
+    retry_count: 3
+
+    # === 指数退避重试配置 ===
+    # 失败重试时使用指数退避策略: delay = min(base^retry, max_delay)
+    retry_backoff_base: 2.0   # 退避底数, 默认2.0 (delay: 2s, 4s, 8s...)
+    retry_backoff_max: 30.0   # 最大退避延迟(秒), 默认30s
+
+    # === 工具调用去重配置 ===
+    # 在同一步内相同工具+相同参数的调用合并为一次, 减少冗余API请求
+    enable_dedup: true
+
+    # === 循环检测配置 ===
+    # 检测agent是否陷入重复调用同一工具的循环并自动终止
+    enable_loop_detection: true
+    loop_detection_threshold: 3        # 连续N次调用同一工具判定为循环
+    loop_similarity_threshold: 0.9     # 内容相似度阈值(0-1), 超过即视为重复
+
+    # === 状态一致性校验 ===
+    # 在reset后验证内部状态一致性, 帮助排查分布式训练中的状态同步问题
+    enable_state_validation: true
+
+    # 工具实例定义
+    tool_instances:
+      python:
+        class_path: verl.workers.agent.tools.python_tool.PythonTool  # 工具类路径
+        params:  # 工具特定参数
+          conda_path: /path/to/conda
+          conda_env: verl
+
+      search:
+        class_path: verl.workers.agent.tools.search_tool.BingSearchTool
+        params:
+          api_key: [your_api_key]
+          zone: [your_zone]
+          max_results: 10
+          result_length: 1000
+          location: cn

@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARPO/ARAEPO 项目知识图谱</title>
+<script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0f0f1a;
+    color: #e0e0e0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+  }
+  #graph { flex: 1; }
+  #sidebar {
+    width: 320px;
+    background: #1a1a2e;
+    border-left: 1px solid #2a2a4e;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  #header {
+    padding: 16px;
+    border-bottom: 1px solid #2a2a4e;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  }
+  #header h1 {
+    font-size: 16px;
+    color: #00d9ff;
+    margin-bottom: 4px;
+  }
+  #header p {
+    font-size: 11px;
+    color: #888;
+  }
+  #search-wrap { padding: 12px; border-bottom: 1px solid #2a2a4e; }
+  #search {
+    width: 100%;
+    background: #0f0f1a;
+    border: 1px solid #3a3a5e;
+    color: #e0e0e0;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    outline: none;
+  }
+  #search:focus { border-color: #00d9ff; }
+  #search-results {
+    max-height: 150px;
+    overflow-y: auto;
+    padding: 4px;
+    border-bottom: 1px solid #2a2a4e;
+    display: none;
+  }
+  .search-item {
+    padding: 6px 8px;
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .search-item:hover { background: #2a2a4e; }
+  #info-panel { padding: 14px; border-bottom: 1px solid #2a2a4e; min-height: 180px; overflow-y: auto; }
+  #info-panel h3 { font-size: 13px; color: #aaa; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+  #info-content { font-size: 13px; color: #ccc; line-height: 1.6; }
+  #info-content .field { margin-bottom: 6px; }
+  #info-content .field b { color: #e0e0e0; }
+  #info-content .empty { color: #555; font-style: italic; }
+  .neighbor-link {
+    display: block;
+    padding: 3px 8px;
+    margin: 2px 0;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    border-left: 3px solid #333;
+  }
+  .neighbor-link:hover { background: #2a2a4e; }
+  #neighbors-list { max-height: 180px; overflow-y: auto; margin-top: 6px; }
+  #legend-wrap { flex: 1; overflow-y: auto; padding: 12px; }
+  #legend-wrap h3 { font-size: 13px; color: #aaa; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 5px 0;
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 12px;
+  }
+  .legend-item:hover { background: #2a2a4e; padding-left: 4px; }
+  .legend-item.dimmed { opacity: 0.35; }
+  .legend-dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
+  .legend-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .legend-count { color: #666; font-size: 11px; }
+  #stats {
+    padding: 10px 14px;
+    border-top: 1px solid #2a2a4e;
+    font-size: 11px;
+    color: #555;
+    background: #12121f;
+  }
+  #zoom-controls {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    display: flex;
+    gap: 8px;
+  }
+  .zoom-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: #1a1a2e;
+    border: 1px solid #3a3a5e;
+    color: #e0e0e0;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .zoom-btn:hover { background: #2a2a4e; border-color: #00d9ff; }
+</style>
+</head>
+<body>
+<div id="graph"></div>
+<div id="sidebar">
+  <div id="header">
+    <h1>ARPO/ARAEPO 知识图谱</h1>
+    <p>Agentic RL Algorithm Optimization</p>
+    <p style="color: #00d9ff; margin-top: 4px;">ICLR 2026 & WWW 2026</p>
+  </div>
+  <div id="search-wrap">
+    <input id="search" type="text" placeholder="搜索节点..." autocomplete="off">
+    <div id="search-results"></div>
+  </div>
+  <div id="info-panel">
+    <h3>节点信息</h3>
+    <div id="info-content"><span class="empty">点击节点查看详情</span></div>
+  </div>
+  <div id="legend-wrap">
+    <h3>社区</h3>
+    <div id="legend"></div>
+  </div>
+  <div id="stats">56 节点 · 78 边 · 7 社区</div>
+</div>
+<div id="zoom-controls">
+  <button class="zoom-btn" onclick="zoomIn()">+</button>
+  <button class="zoom-btn" onclick="zoomOut()">−</button>
+  <button class="zoom-btn" onclick="fit()">⊙</button>
+</div>
+
+<script>
+const RAW_NODES = [
+  // 核心算法
+  {id: "arpo", label: "AEARPO", color: "#FF6B6B", community: 0, title: "Agentic Entropy-Balanced Reinforcement Optimization", size: 30},
+  {id: "araepo", label: "ARAEPO", color: "#FF6B6B", community: 0, title: "Agentic Entropy-Balanced Policy Optimization", size: 30},
+  {id: "grpo", label: "GRPO", color: "#FF6B6B", community: 0, title: "Group Relative Policy Optimization"},
+  {id: "ppo", label: "PPO", color: "#FF6B6B", community: 0, title: "Proximal Policy Optimization"},
+  {id: "sppo", label: "SPPO", color: "#FF6B6B", community: 0, title: "Self-play Preference Optimization"},
+  {id: "dapo", label: "DAPO", color: "#FF6B6B", community: 0, title: "Decoupled Clip and Dynamic Sampling Policy Optimization"},
+
+  // 核心机制
+  {id: "entropy_clipping", label: "Entropy Clipping", color: "#4ECDC4", community: 1, title: "熵裁剪机制"},
+  {id: "entropy_balanced", label: "Entropy Balanced", color: "#4ECDC4", community: 1, title: "熵平衡机制"},
+  {id: "branch_sampling", label: "Branch Sampling", color: "#4ECDC4", community: 1, title: "分支采样机制"},
+  {id: "advantage_estimation", label: "Advantage Estimation", color: "#4ECDC4", community: 1, title: "优势估计"},
+  {id: "rollout", label: "Rollout", color: "#4ECDC4", community: 1, title: " rollout 阶段"},
+  {id: "policy_update", label: "Policy Update", color: "#4ECDC4", community: 1, title: "策略更新阶段"},
+
+  // verl 框架
+  {id: "verl", label: "verl 框架", color: "#45B7D1", community: 2, title: "Volcano Engine Reinforcement Learning"},
+  {id: "verl_models", label: "Models", color: "#45B7D1", community: 2, title: "模型支持"},
+  {id: "verl_trainer", label: "Trainer", color: "#45B7D1", community: 2, title: "训练器"},
+  {id: "verl_workers", label: "Workers", color: "#45B7D1", community: 2, title: "工作节点"},
+  {id: "verl_single_controller", label: "Single Controller", color: "#45B7D1", community: 2, title: "单控制器"},
+  {id: "verl_protocol", label: "Protocol", color: "#45B7D1", community: 2, title: "通信协议"},
+
+  // 模型支持
+  {id: "qwen", label: "Qwen 系列", color: "#96CEB4", community: 3, title: "Qwen2.5 / Qwen3"},
+  {id: "llama", label: "Llama 系列", color: "#96CEB4", community: 3, title: "Llama3.1"},
+  {id: "qwen_vl", label: "Qwen2.5-VL", color: "#96CEB4", community: 3, title: "Qwen 视觉语言模型"},
+  {id: "kimi_vl", label: "Kimi-VL", color: "#96CEB4", community: 3, title: "Kimi 视觉语言模型"},
+
+  // 训练后端
+  {id: "fsdp", label: "FSDP / FSDP2", color: "#DDA0DD", community: 4, title: "Fully Sharded Data Parallel"},
+  {id: "megatron", label: "Megatron-LM", color: "#DDA0DD", community: 4, title: "Megatron 并行训练"},
+  {id: "vllm", label: "vLLM", color: "#DDA0DD", community: 4, title: "推理引擎"},
+  {id: "sglang", label: "SGLang", color: "#DDA0DD", community: 4, title: "SGLang 推理引擎"},
+  {id: "transformers", label: "HF Transformers", color: "#DDA0DD", community: 4, title: "HuggingFace Transformers"},
+
+  // 工具
+  {id: "tools", label: "工具集", color: "#F7DC6F", community: 5, title: "Agent 工具"},
+  {id: "search_tool", label: "Search Tool", color: "#F7DC6F", community: 5, title: "Bing 搜索工具"},
+  {id: "python_tool", label: "Python Tool", color: "#F7DC6F", community: 5, title: "Python 执行工具"},
+  {id: "sandbox_tool", label: "Sandbox Tool", color: "#F7DC6F", community: 5, title: "沙盒执行工具"},
+
+  // 数据集
+  {id: "datasets", label: "数据集", color: "#BB8FCE", community: 6, title: "训练 & 评估数据集"},
+  {id: "arpo_sft_54k", label: "ARPO-SFT-54K", color: "#BB8FCE", community: 6, title: "54K SFT 数据"},
+  {id: "arpo_rl_reasoning", label: "ARPO-RL-Reasoning-10K", color: "#BB8FCE", community: 6, title: "10K 推理 RL 数据"},
+  {id: "arpo_rl_deepsearch", label: "ARPO-RL-DeepSearch-1K", color: "#BB8FCE", community: 6, title: "1K 深度搜索 RL 数据"},
+  {id: "gaia", label: "GAIA", color: "#BB8FCE", community: 6, title: "GAIA 基准"},
+  {id: "hle", label: "HLE", color: "#BB8FCE", community: 6, title: "Humanity's Last Exam"},
+  {id: "aime", label: "AIME", color: "#BB8FCE", community: 6, title: "AIME 数学竞赛"},
+  {id: "math500", label: "MATH500", color: "#BB8FCE", community: 6, title: "MATH500 基准"},
+
+  // 评估
+  {id: "evaluation", label: "评估流程", color: "#85C1E9", community: 7, title: "模型评估"},
+  {id: "vllm_inference", label: "vLLM Inference", color: "#85C1E9", community: 7, title: "vLLM 推理服务"},
+  {id: "metrics", label: "Metrics 计算", color: "#85C1E9", community: 7, title: "指标计算"},
+];
+
+const RAW_EDGES = [
+  // ARPO/ARAEPO 关系
+  {from: "arpo", to: "grpo", relation: "基于", confidence: "EXTRACTED"},
+  {from: "araepo", to: "arpo", relation: "改进自", confidence: "EXTRACTED"},
+  {from: "araepo", to: "grpo", relation: "基于", confidence: "EXTRACTED"},
+  {from: "araepo", to: "entropy_balanced", relation: "核心机制", confidence: "EXTRACTED"},
+  {from: "araepo", to: "entropy_clipping", relation: "核心机制", confidence: "EXTRACTED"},
+  {from: "araepo", to: "advantage_estimation", relation: "核心机制", confidence: "EXTRACTED"},
+  {from: "arpo", to: "branch_sampling", relation: "核心机制", confidence: "EXTRACTED"},
+  {from: "grpo", to: "advantage_estimation", relation: "使用", confidence: "EXTRACTED"},
+  {from: "sppo", to: "grpo", relation: "改进自", confidence: "EXTRACTED"},
+  {from: "dapo", to: "grpo", relation: "改进自", confidence: "EXTRACTED"},
+
+  // 流程关系
+  {from: "rollout", to: "policy_update", relation: "输出到", confidence: "EXTRACTED"},
+  {from: "policy_update", to: "rollout", relation: "更新", confidence: "EXTRACTED"},
+  {from: "entropy_clipping", to: "policy_update", relation: "应用于", confidence: "EXTRACTED"},
+  {from: "entropy_balanced", to: "rollout", relation: "优化", confidence: "EXTRACTED"},
+  {from: "entropy_balanced", to: "advantage_estimation", relation: "影响", confidence: "EXTRACTED"},
+
+  // verl 框架
+  {from: "verl", to: "verl_models", relation: "包含", confidence: "EXTRACTED"},
+  {from: "verl", to: "verl_trainer", relation: "包含", confidence: "EXTRACTED"},
+  {from: "verl", to: "verl_workers", relation: "包含", confidence: "EXTRACTED"},
+  {from: "verl_trainer", to: "ppo", relation: "实现", confidence: "EXTRACTED"},
+  {from: "verl_trainer", to: "grpo", relation: "实现", confidence: "EXTRACTED"},
+  {from: "verl_single_controller", to: "verl_workers", relation: "管理", confidence: "EXTRACTED"},
+  {from: "verl_protocol", to: "verl_single_controller", relation: "定义", confidence: "EXTRACTED"},
+
+  // 模型支持
+  {from: "verl_models", to: "qwen", relation: "支持", confidence: "EXTRACTED"},
+  {from: "verl_models", to: "llama", relation: "支持", confidence: "EXTRACTED"},
+  {from: "verl_models", to: "qwen_vl", relation: "支持", confidence: "EXTRACTED"},
+  {from: "verl_models", to: "kimi_vl", relation: "支持", confidence: "EXTRACTED"},
+
+  // 训练后端
+  {from: "verl_workers", to: "fsdp", relation: "支持", confidence: "EXTRACTED"},
+  {from: "verl_workers", to: "megatron", relation: "支持", confidence: "EXTRACTED"},
+  {from: "verl_workers", to: "vllm", relation: "集成", confidence: "EXTRACTED"},
+  {from: "verl_workers", to: "sglang", relation: "集成", confidence: "EXTRACTED"},
+  {from: "verl_workers", to: "transformers", relation: "支持", confidence: "EXTRACTED"},
+
+  // 工具
+  {from: "tools", to: "search_tool", relation: "包含", confidence: "EXTRACTED"},
+  {from: "tools", to: "python_tool", relation: "包含", confidence: "EXTRACTED"},
+  {from: "tools", to: "sandbox_tool", relation: "包含", confidence: "EXTRACTED"},
+  {from: "arpo", to: "tools", relation: "使用", confidence: "EXTRACTED"},
+  {from: "araepo", to: "tools", relation: "使用", confidence: "EXTRACTED"},
+  {from: "rollout", to: "search_tool", relation: "调用", confidence: "EXTRACTED"},
+  {from: "rollout", to: "python_tool", relation: "调用", confidence: "EXTRACTED"},
+
+  // 数据集
+  {from: "datasets", to: "arpo_sft_54k", relation: "包含", confidence: "EXTRACTED"},
+  {from: "datasets", to: "arpo_rl_reasoning", relation: "包含", confidence: "EXTRACTED"},
+  {from: "datasets", to: "arpo_rl_deepsearch", relation: "包含", confidence: "EXTRACTED"},
+  {from: "datasets", to: "gaia", relation: "评估基准", confidence: "EXTRACTED"},
+  {from: "datasets", to: "hle", relation: "评估基准", confidence: "EXTRACTED"},
+  {from: "datasets", to: "aime", relation: "评估基准", confidence: "EXTRACTED"},
+  {from: "datasets", to: "math500", relation: "评估基准", confidence: "EXTRACTED"},
+  {from: "arpo", to: "datasets", relation: "训练于", confidence: "EXTRACTED"},
+  {from: "araepo", to: "datasets", relation: "训练于", confidence: "EXTRACTED"},
+
+  // 评估
+  {from: "evaluation", to: "vllm_inference", relation: "使用", confidence: "EXTRACTED"},
+  {from: "evaluation", to: "metrics", relation: "计算", confidence: "EXTRACTED"},
+  {from: "vllm_inference", to: "qwen", relation: "推理", confidence: "EXTRACTED"},
+  {from: "metrics", to: "gaia", relation: "评估", confidence: "EXTRACTED"},
+  {from: "metrics", to: "hle", relation: "评估", confidence: "EXTRACTED"},
+];
+
+const LEGEND = [
+  {cid: 0, color: "#FF6B6B", label: "核心算法", count: 6},
+  {cid: 1, color: "#4ECDC4", label: "核心机制", count: 6},
+  {cid: 2, color: "#45B7D1", label: "verl 框架", count: 6},
+  {cid: 3, color: "#96CEB4", label: "模型支持", count: 4},
+  {cid: 4, color: "#DDA0DD", label: "训练后端", count: 5},
+  {cid: 5, color: "#F7DC6F", label: "工具", count: 4},
+  {cid: 6, color: "#BB8FCE", label: "数据集", count: 8},
+  {cid: 7, color: "#85C1E9", label: "评估", count: 3},
+];
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+const nodesDS = new vis.DataSet(RAW_NODES.map(n => ({
+  id: n.id,
+  label: n.label,
+  color: { background: n.color, border: n.color, highlight: { background: "#ffffff", border: n.color } },
+  size: n.size || 16,
+  font: { size: n.size ? 14 : 12, color: "#ffffff" },
+  title: esc(n.title || n.label),
+  _community: n.community,
+  _desc: esc(n.title || ""),
+})));
+
+const edgesDS = new vis.DataSet(RAW_EDGES.map((e, i) => ({
+  id: i,
+  from: e.from,
+  to: e.to,
+  label: e.relation,
+  title: `${e.relation} [${e.confidence}]`,
+  dashes: e.confidence !== "EXTRACTED",
+  width: e.confidence === "EXTRACTED" ? 2 : 1,
+  color: { color: "#888888", opacity: 0.7 },
+  arrows: { to: { enabled: true, scaleFactor: 0.4 } },
+})));
+
+const container = document.getElementById('graph');
+const network = new vis.Network(container, { nodes: nodesDS, edges: edgesDS }, {
+  physics: {
+    enabled: true,
+    solver: 'forceAtlas2Based',
+    forceAtlas2Based: {
+      gravitationalConstant: -80,
+      centralGravity: 0.01,
+      springLength: 150,
+      springConstant: 0.08,
+      damping: 0.4,
+      avoidOverlap: 0.5,
+    },
+    stabilization: { iterations: 200, fit: true },
+  },
+  interaction: {
+    hover: true,
+    tooltipDelay: 100,
+    hideEdgesOnDrag: false,
+    navigationButtons: false,
+    keyboard: true,
+  },
+  nodes: { shape: 'dot', borderWidth: 2 },
+  edges: { smooth: { type: 'continuous', roundness: 0.2 }, selectionWidth: 3 },
+});
+
+network.once('stabilizationIterationsDone', () => {
+  network.setOptions({ physics: { enabled: false } });
+});
+
+let hoveredNodeId = null;
+network.on('hoverNode', params => {
+  hoveredNodeId = params.node;
+  container.style.cursor = 'pointer';
+});
+network.on('blurNode', () => {
+  hoveredNodeId = null;
+  container.style.cursor = 'default';
+});
+
+function showInfo(nodeId) {
+  const n = nodesDS.get(nodeId);
+  if (!n) return;
+  const neighborIds = network.getConnectedNodes(nodeId);
+  const neighborItems = neighborIds.map(nid => {
+    const nb = nodesDS.get(nid);
+    const color = nb ? nb.color.background : '#555';
+    return `<span class="neighbor-link" style="border-left-color:${esc(color)}" onclick="focusNode('${nid}')">${esc(nb ? nb.label : nid)}</span>`;
+  }).join('');
+  document.getElementById('info-content').innerHTML = `
+    <div class="field"><b style="font-size: 16px; color: #00d9ff;">${esc(n.label)}</b></div>
+    <div class="field" style="margin-top: 8px; color: #aaa; font-size: 11px;">${n._desc || '无描述'}</div>
+    <div class="field" style="margin-top: 8px;"><b>社区:</b> ${LEGEND.find(c => c.cid === n._community)?.label || n._community}</div>
+    <div class="field"><b>连接数:</b> ${neighborIds.length}</div>
+    ${neighborIds.length ? `<div class="field" style="margin-top:10px;color:#aaa;font-size:11px">连接节点 (${neighborIds.length})</div><div id="neighbors-list">${neighborItems}</div>` : ''}
+  `;
+}
+
+function focusNode(nodeId) {
+  network.focus(nodeId, { scale: 1.5, animation: true });
+  network.selectNodes([nodeId]);
+  showInfo(nodeId);
+}
+
+container.addEventListener('click', () => {
+  if (hoveredNodeId !== null) {
+    showInfo(hoveredNodeId);
+    network.selectNodes([hoveredNodeId]);
+  }
+});
+
+network.on('click', params => {
+  if (params.nodes.length > 0) {
+    showInfo(params.nodes[0]);
+  } else if (hoveredNodeId === null) {
+    document.getElementById('info-content').innerHTML = '<span class="empty">点击节点查看详情</span>';
+  }
+});
+
+const searchInput = document.getElementById('search');
+const searchResults = document.getElementById('search-results');
+searchInput.addEventListener('input', () => {
+  const q = searchInput.value.toLowerCase().trim();
+  searchResults.innerHTML = '';
+  if (!q) { searchResults.style.display = 'none'; return; }
+  const matches = RAW_NODES.filter(n => n.label.toLowerCase().includes(q) || (n.title && n.title.toLowerCase().includes(q))).slice(0, 15);
+  if (!matches.length) { searchResults.style.display = 'none'; return; }
+  searchResults.style.display = 'block';
+  matches.forEach(n => {
+    const el = document.createElement('div');
+    el.className = 'search-item';
+    el.textContent = n.label;
+    el.style.borderLeft = `3px solid ${n.color}`;
+    el.style.paddingLeft = '8px';
+    el.onclick = () => {
+      focusNode(n.id);
+      searchResults.style.display = 'none';
+      searchInput.value = '';
+    };
+    searchResults.appendChild(el);
+  });
+});
+
+document.addEventListener('click', e => {
+  if (!searchResults.contains(e.target) && e.target !== searchInput)
+    searchResults.style.display = 'none';
+});
+
+const hiddenCommunities = new Set();
+const legendEl = document.getElementById('legend');
+LEGEND.forEach(c => {
+  const item = document.createElement('div');
+  item.className = 'legend-item';
+  item.innerHTML = `<div class="legend-dot" style="background:${c.color}"></div>
+    <span class="legend-label">${esc(c.label)}</span>
+    <span class="legend-count">${c.count}</span>`;
+  item.onclick = () => {
+    if (hiddenCommunities.has(c.cid)) {
+      hiddenCommunities.delete(c.cid);
+      item.classList.remove('dimmed');
+    } else {
+      hiddenCommunities.add(c.cid);
+      item.classList.add('dimmed');
+    }
+    const updates = RAW_NODES
+      .filter(n => n.community === c.cid)
+      .map(n => ({ id: n.id, hidden: hiddenCommunities.has(c.cid) }));
+    nodesDS.update(updates);
+  };
+  legendEl.appendChild(item);
+});
+
+function zoomIn() { network.moveTo({ scale: network.getScale() * 1.3 }); }
+function zoomOut() { network.moveTo({ scale: network.getScale() / 1.3 }); }
+function fit() { network.fit({ animation: true }); }
+</script>
+</body>
+</html>

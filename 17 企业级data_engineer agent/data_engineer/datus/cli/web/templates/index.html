@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231a1a1a'/%3E%3Ctext x='16' y='23' text-anchor='middle' font-family='Arial' font-size='20' font-weight='bold' fill='white'%3EDE%3C/text%3E%3C/svg%3E" />
+    <title>Data Engineering Agent</title>
+
+    <!-- React (externals) -->
+    <script
+      crossorigin
+      src="{{ react_js }}"
+    ></script>
+    <script
+      crossorigin
+      src="{{ react_dom_js }}"
+    ></script>
+
+    <!-- Datus Chatbot -->
+    <link rel="stylesheet" href="{{ chatbot_css }}" />
+    <script src="{{ chatbot_js }}"></script>
+
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        height: 100%;
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+          'Helvetica Neue', Arial, sans-serif;
+      }
+
+      /* ── Brand Header ────────────────────────────── */
+      .brand-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 40px;
+        min-height: 40px;
+        padding: 0 16px;
+        background: #1a1a1a;
+        border-bottom: 1px solid #333;
+        color: #e0e0e0;
+        font-size: 13px;
+        font-weight: 500;
+        letter-spacing: .3px;
+        z-index: 100;
+        flex-shrink: 0;
+      }
+
+      .brand-header-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .brand-logo {
+        width: 24px;
+        height: 24px;
+        background: #444;
+        border-radius: 5px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: -0.5px;
+      }
+
+      .brand-title {
+        font-weight: 600;
+        font-size: 14px;
+      }
+
+      .brand-tagline {
+        color: #888;
+        font-size: 11px;
+        font-weight: 400;
+        margin-left: 4px;
+      }
+
+      .brand-header-right {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 11px;
+        color: #777;
+      }
+
+      .brand-status {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .brand-dot {
+        width: 6px;
+        height: 6px;
+        background: #888;
+        border-radius: 50%;
+        box-shadow: 0 0 4px rgba(255,255,255,.15);
+      }
+
+      /* ── Main Layout ─────────────────────────────── */
+      #app-wrapper {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        overflow: hidden;
+      }
+
+      #chatbot-root {
+        flex: 1;
+        min-height: 0;
+      }
+
+      /* ── Theme: CSS Variable Overrides ──────────── */
+      html[data-theme="light"] {
+        --primary-color: #333;
+        --color-link: #555;
+        --color-success: #666;
+        --color-danger: #c0392b;
+        --user-msg-background: #e8e8e8;
+        --assistant-msg-background: #fff;
+        --app-background: #f5f5f5;
+        --sidebar-background: #eee;
+        --background-title: #f0f0f0;
+        --background-code: #f0f0f0;
+        --chat-input-background: #fff;
+        --chat-input-border: #d0d0d0;
+        --border-color: #e0e0e0;
+        --border-input: #d0d0d0;
+        --background-hover: rgba(0,0,0,.05);
+        --text-primary: #1a1a1a;
+        --text-secondary: #666;
+        --text-disabled: #bbb;
+        --text-highlight: #000;
+        --popover-background: #fff;
+        --color-blue: #555;
+        --color-green: #444;
+        --color-azure: #666;
+        --color-orange: #888;
+        --color-yellow: #999;
+        --color-purple: #777;
+        --progress-line: #d0d0d0;
+      }
+
+      html[data-theme="dark"] {
+        --primary-color: #aaa;
+        --color-link: #999;
+        --color-success: #888;
+        --color-danger: #e74c3c;
+        --user-msg-background: #2a2a2a;
+        --assistant-msg-background: #1e1e1e;
+        --app-background: #111;
+        --sidebar-background: #181818;
+        --background-title: #1a1a1a;
+        --background-code: #1a1a1a;
+        --chat-input-background: #1a1a1a;
+        --chat-input-border: #333;
+        --border-color: #2a2a2a;
+        --border-input: #333;
+        --background-hover: rgba(255,255,255,.04);
+        --text-primary: #ccc;
+        --text-secondary: #888;
+        --text-disabled: #555;
+        --text-highlight: #eee;
+        --popover-background: #222;
+        --color-blue: #999;
+        --color-green: #888;
+        --color-azure: #aaa;
+        --color-orange: #999;
+        --color-yellow: #aaa;
+        --color-purple: #999;
+        --progress-line: #333;
+      }
+
+      /* ── Code readability overrides ─────────────── */
+      ._codeBlock_1l1y3_1 code,
+      ._markdownContent_jlqbd_7 pre,
+      ._markdownContent_jlqbd_7 code,
+      ._sqlResult_1jat7_1 ._explainResult_1jat7_31,
+      pre, code {
+        -webkit-user-select: text !important;
+        user-select: text !important;
+      }
+
+      /* ── Scrollbar styling ──────────────────────── */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: #c1c1c1;
+        border-radius: 3px;
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: #a1a1a1;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="app-wrapper">
+      <header class="brand-header">
+        <div class="brand-header-left">
+          <div class="brand-logo">DE</div>
+          <span class="brand-title">Data Engineering Agent</span>
+          <span class="brand-tagline">AI-Powered Data Analysis</span>
+        </div>
+        <div class="brand-header-right">
+          <div class="brand-status">
+            <span class="brand-dot"></span>
+            Connected
+          </div>
+          <span>v2.0</span>
+        </div>
+      </header>
+
+      <div id="chatbot-root"></div>
+    </div>
+
+    <script>
+      DatusChatbot.initChatbot({
+        el: '#chatbot-root',
+        requestOrigin: {{ request_origin_json }} || window.location.origin,
+        userName: {{ user_name_json }} || 'Data Engineer',
+      });
+
+      // ── Strip emoji from UI text nodes ────────────
+      (function() {
+        var RE = /[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2300}-\u{23FF}\u{2B50}\u{2B55}\u{3030}\u{303D}\u{3297}\u{3299}\u{FE0F}\u{200D}]+/gu;
+
+        function stripEmoji(root) {
+          var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null, false);
+          var node;
+          while (node = walker.nextNode()) {
+            if (RE.test(node.nodeValue)) {
+              node.nodeValue = node.nodeValue.replace(RE, '');
+            }
+          }
+        }
+
+        stripEmoji(document.getElementById('chatbot-root'));
+
+        var observer = new MutationObserver(function(mutations) {
+          mutations.forEach(function(m) {
+            m.addedNodes.forEach(function(n) {
+              if (n.nodeType === 1) stripEmoji(n);
+            });
+          });
+        });
+
+        observer.observe(document.getElementById('chatbot-root'), {
+          childList: true,
+          subtree: true
+        });
+      })();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,26 @@
+name: "Code Quality"
+
+on:
+  pull_request_target:
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+concurrency:
+  group: code-quality-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  format-check:
+    if: ${{ !startsWith(github.event.pull_request.title, '[Doc]') && !startsWith(github.event.pull_request.title, '[doc]') }}
+    uses: ./.github/workflows/python-format-check.yml
+
+  run-coverage:
+    needs: format-check
+    if: ${{ !startsWith(github.event.pull_request.title, '[Doc]') && !startsWith(github.event.pull_request.title, '[doc]') }}
+    uses: ./.github/workflows/run-ut-and-coverage.yml
