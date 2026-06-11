@@ -59,7 +59,7 @@ SchemaWithValueRAG.search_schema()
 ```python
 # 配置优先级（高 → 低）
 1. CLI 参数 --datasource
-2. .datus/config.yml
+2. .data_engineer/config.yml
 3. agent.yml 默认值
 ```
 
@@ -455,7 +455,7 @@ workflow.add_observer(lambda state: update_ui(state))
 
 ```bash
 # 验证 Schema 是否存在
-datus-cli --datasource demo /List tables
+data_engineer-cli --datasource demo /List tables
 ```
 
 ### Q2: LLM 生成 SQL 语法错误
@@ -468,7 +468,7 @@ datus-cli --datasource demo /List tables
 ```python
 # 启用详细日志
 import logging
-logging.getLogger("datus").setLevel(logging.DEBUG)
+logging.getLogger("data_engineer").setLevel(logging.DEBUG)
 ```
 
 ### Q3: SQL 执行超时

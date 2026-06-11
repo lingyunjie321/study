@@ -53,13 +53,13 @@ Agent.run()
 ### 调用链路
 
 ```
-datus/agent/node/begin_node.py:12
+data_engineer/agent/node/begin_node.py:12
 ```
 
 ### 关键代码
 
 ```python
-# datus/agent/node/begin_node.py:14-30
+# data_engineer/agent/node/begin_node.py:14-30
 class BeginNode(Node):
     async def execute(self, state: dict) -> dict:
         """初始化 SqlTaskState"""
@@ -79,13 +79,13 @@ class BeginNode(Node):
 ### 调用链路
 
 ```
-datus/agent/node/selection_node.py:25
+data_engineer/agent/node/selection_node.py:25
 ```
 
 ### 关键代码
 
 ```python
-# datus/agent/node/selection_node.py:26-45
+# data_engineer/agent/node/selection_node.py:26-45
 async def execute(self, state: dict) -> dict:
     """根据查询内容分类意图"""
     nl_query = state["sql_state"].nl_query
@@ -109,14 +109,14 @@ async def execute(self, state: dict) -> dict:
 ### 调用链路
 
 ```
-datus/agent/node/schema_linking_node.py:35
-  └→ datus/storage/schema_metadata/store.py:search_schema()
+data_engineer/agent/node/schema_linking_node.py:35
+  └→ data_engineer/storage/schema_metadata/store.py:search_schema()
 ```
 
 ### 关键代码
 
 ```python
-# datus/agent/node/schema_linking_node.py:36-60
+# data_engineer/agent/node/schema_linking_node.py:36-60
 class SchemaLinkingNode(Node):
     async def execute(self, state: dict) -> dict:
         sql_state = state["sql_state"]
@@ -140,7 +140,7 @@ class SchemaLinkingNode(Node):
 ```
 
 ```python
-# datus/storage/schema_metadata/store.py:55-80
+# data_engineer/storage/schema_metadata/store.py:55-80
 class SchemaWithValueRAG:
     def search_schema(self, query: str, top_k: int = 20) -> List[Dict]:
         """向量搜索相关表结构"""
@@ -164,20 +164,20 @@ class SchemaWithValueRAG:
 ### 调用链路
 
 ```
-datus/agent/node/gen_sql_agentic_node.py:45
+data_engineer/agent/node/gen_sql_agentic_node.py:45
   ├→ _run_once()
   │     ├→ _build_prompt()
   │     ├→ _retrieve_context()
   │     ├→ _call_llm()
   │     └→ _verify_sql()
   │
-  └→ datus/tools/func_tool/context_search.py:search_context()
+  └→ data_engineer/tools/func_tool/context_search.py:search_context()
 ```
 
 ### 核心代码片段
 
 ```python
-# datus/agent/node/gen_sql_agentic_node.py:46-120
+# data_engineer/agent/node/gen_sql_agentic_node.py:46-120
 async def _run_once(self, state: SqlTaskState) -> SqlTaskState:
     """单次执行：理解 → 检索 → 生成 → 验证"""
 
@@ -209,7 +209,7 @@ async def _run_once(self, state: SqlTaskState) -> SqlTaskState:
 ```
 
 ```python
-# datus/agent/node/gen_sql_agentic_node.py:121-145
+# data_engineer/agent/node/gen_sql_agentic_node.py:121-145
 def _build_prompt(self, state: SqlTaskState) -> str:
     """构建 SQL 生成 Prompt"""
     # 注入 Schema 信息
@@ -234,7 +234,7 @@ def _build_prompt(self, state: SqlTaskState) -> str:
 ```
 
 ```python
-# datus/agent/node/gen_sql_agentic_node.py:146-175
+# data_engineer/agent/node/gen_sql_agentic_node.py:146-175
 async def _retrieve_context(self, state: SqlTaskState) -> Dict:
     """检索相关上下文：Schema、文档、指标"""
     context = {}
@@ -270,14 +270,14 @@ async def _retrieve_context(self, state: SqlTaskState) -> Dict:
 ### 调用链路
 
 ```
-datus/agent/node/execute_sql_node.py:30
-  └→ datus/tools/db_tools/db_manager.py:execute()
+data_engineer/agent/node/execute_sql_node.py:30
+  └→ data_engineer/tools/db_tools/db_manager.py:execute()
 ```
 
 ### 关键代码
 
 ```python
-# datus/agent/node/execute_sql_node.py:31-55
+# data_engineer/agent/node/execute_sql_node.py:31-55
 class ExecuteSQLNode(Node):
     async def execute(self, state: dict) -> dict:
         sql_state = state["sql_state"]
@@ -306,7 +306,7 @@ class ExecuteSQLNode(Node):
 ```
 
 ```python
-# datus/tools/db_tools/db_manager.py:80-110
+# data_engineer/tools/db_tools/db_manager.py:80-110
 class DBManager:
     def execute(self, sql: str, datasource: str) -> QueryResult:
         """执行 SQL 并返回结果"""
@@ -326,13 +326,13 @@ class DBManager:
 ### 调用链路
 
 ```
-datus/agent/node/output_node.py:25
+data_engineer/agent/node/output_node.py:25
 ```
 
 ### 关键代码
 
 ```python
-# datus/agent/node/output_node.py:26-50
+# data_engineer/agent/node/output_node.py:26-50
 class OutputNode(Node):
     def execute(self, state: dict) -> dict:
         sql_state = state["sql_state"]
